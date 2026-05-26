@@ -152,3 +152,36 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+.links-editor {
+  margin-top: 32px;
+}
+
+.links-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.link-editor-card {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .04);
+}
+
+.add-btn {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #6d5dfc;
+  color: white;
+}
+
+.delete-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 0, 0, .12);
+  color: #ff8e8e;
+}
