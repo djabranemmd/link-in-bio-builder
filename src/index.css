@@ -202,3 +202,10 @@ textarea {
 .theme-editor h3 {
   margin-bottom: 12px;
 }
+
+.drag-handle {
+  margin-bottom: 12px;
+  cursor: grab;
+  font-size: 22px;
+  opacity: .6;
+}

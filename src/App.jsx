@@ -1,4 +1,17 @@
 import { useEffect, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+} from "@dnd-kit/core";
+
+import {
+  SortableContext,
+  arrayMove,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+
+import { CSS } from "@dnd-kit/utilities";
 
 const defaultProfile = {
   name: "Ahmed",
@@ -26,45 +39,86 @@ const defaultTheme = {
   radius: 18,
 };
 
+function SortableLinkEditor({
+  link,
+  handleLinkChange,
+  removeLink,
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    id: link.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="link-editor-card"
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="drag-handle"
+      >
+        ⋮⋮
+      </div>
+
+      <input
+        placeholder="Title"
+        value={link.title}
+        onChange={(e) =>
+          handleLinkChange(link.id, "title", e.target.value)
+        }
+      />
+
+      <input
+        placeholder="URL"
+        value={link.url}
+        onChange={(e) =>
+          handleLinkChange(link.id, "url", e.target.value)
+        }
+      />
+
+      <button
+        className="delete-btn"
+        onClick={() => removeLink(link.id)}
+      >
+        Delete
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const [profile, setProfile] = useState(defaultProfile);
   const [links, setLinks] = useState(defaultLinks);
   const [theme, setTheme] = useState(defaultTheme);
 
   useEffect(() => {
-    try {
-      const savedProfile = localStorage.getItem("profile");
-      const savedLinks = localStorage.getItem("links");
-      const savedTheme = localStorage.getItem("theme");
+    const savedProfile = localStorage.getItem("profile");
+    const savedLinks = localStorage.getItem("links");
+    const savedTheme = localStorage.getItem("theme");
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (savedProfile) setProfile(JSON.parse(savedProfile));
-      if (savedLinks) setLinks(JSON.parse(savedLinks));
-      if (savedTheme) {
-        const parsedTheme = JSON.parse(savedTheme);
-
-        setTheme({
-          background: parsedTheme.background || defaultTheme.background,
-          buttonColor: parsedTheme.buttonColor || defaultTheme.buttonColor,
-          radius: Number(parsedTheme.radius) || defaultTheme.radius,
-        });
-      }
-    } catch (error) {
-      console.error("LocalStorage error:", error);
-    }
+    if (savedProfile) setProfile(JSON.parse(savedProfile));
+    if (savedLinks) setLinks(JSON.parse(savedLinks));
+    if (savedTheme) setTheme(JSON.parse(savedTheme));
   }, []);
 
   useEffect(() => {
     localStorage.setItem("profile", JSON.stringify(profile));
-  }, [profile]);
-
-  useEffect(() => {
     localStorage.setItem("links", JSON.stringify(links));
-  }, [links]);
-
-  useEffect(() => {
     localStorage.setItem("theme", JSON.stringify(theme));
-  }, [theme]);
+  }, [profile, links, theme]);
 
   function handleProfileChange(e) {
     const { name, value } = e.target;
@@ -87,7 +141,9 @@ function App() {
   function handleLinkChange(id, field, value) {
     setLinks((prev) =>
       prev.map((link) =>
-        link.id === id ? { ...link, [field]: value } : link
+        link.id === id
+          ? { ...link, [field]: value }
+          : link
       )
     );
   }
@@ -104,17 +160,27 @@ function App() {
   }
 
   function removeLink(id) {
-    setLinks((prev) => prev.filter((link) => link.id !== id));
+    setLinks((prev) =>
+      prev.filter((link) => link.id !== id)
+    );
   }
 
-  function resetAll() {
-    setProfile(defaultProfile);
-    setLinks(defaultLinks);
-    setTheme(defaultTheme);
+  function handleDragEnd(event) {
+    const { active, over } = event;
 
-    localStorage.removeItem("profile");
-    localStorage.removeItem("links");
-    localStorage.removeItem("theme");
+    if (!over || active.id === over.id) return;
+
+    setLinks((items) => {
+      const oldIndex = items.findIndex(
+        (item) => item.id === active.id
+      );
+
+      const newIndex = items.findIndex(
+        (item) => item.id === over.id
+      );
+
+      return arrayMove(items, oldIndex, newIndex);
+    });
   }
 
   return (
@@ -133,6 +199,7 @@ function App() {
 
           <div className="form-group">
             <label>Name</label>
+
             <input
               name="name"
               value={profile.name}
@@ -142,9 +209,10 @@ function App() {
 
           <div className="form-group">
             <label>Bio</label>
+
             <textarea
-              name="bio"
               rows="4"
+              name="bio"
               value={profile.bio}
               onChange={handleProfileChange}
             />
@@ -152,6 +220,7 @@ function App() {
 
           <div className="form-group">
             <label>Avatar URL</label>
+
             <input
               name="avatar"
               value={profile.avatar}
@@ -163,78 +232,33 @@ function App() {
             <div className="links-header">
               <h3>Links</h3>
 
-              <button className="add-btn" onClick={addLink}>
+              <button
+                className="add-btn"
+                onClick={addLink}
+              >
                 + Add Link
               </button>
             </div>
 
-            {links.map((link) => (
-              <div key={link.id} className="link-editor-card">
-                <input
-                  placeholder="Title"
-                  value={link.title}
-                  onChange={(e) =>
-                    handleLinkChange(link.id, "title", e.target.value)
-                  }
-                />
-
-                <input
-                  placeholder="URL"
-                  value={link.url}
-                  onChange={(e) =>
-                    handleLinkChange(link.id, "url", e.target.value)
-                  }
-                />
-
-                <button
-                  className="delete-btn"
-                  onClick={() => removeLink(link.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={links}
+                strategy={verticalListSortingStrategy}
+              >
+                {links.map((link) => (
+                  <SortableLinkEditor
+                    key={link.id}
+                    link={link}
+                    handleLinkChange={handleLinkChange}
+                    removeLink={removeLink}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
-
-          <div className="theme-editor">
-            <h3>Theme</h3>
-
-            <div className="form-group">
-              <label>Background Color</label>
-              <input
-                type="color"
-                name="background"
-                value={theme.background}
-                onChange={handleThemeChange}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Button Color</label>
-              <input
-                type="color"
-                name="buttonColor"
-                value={theme.buttonColor}
-                onChange={handleThemeChange}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Border Radius ({theme.radius}px)</label>
-              <input
-                type="range"
-                min="8"
-                max="40"
-                name="radius"
-                value={theme.radius}
-                onChange={handleThemeChange}
-              />
-            </div>
-          </div>
-
-          <button className="reset-btn" onClick={resetAll}>
-            Reset Everything
-          </button>
         </section>
 
         <section className="preview-panel">
@@ -250,9 +274,9 @@ function App() {
                 <a
                   key={link.id}
                   href={link.url || "#"}
+                  className="link-button"
                   target="_blank"
                   rel="noreferrer"
-                  className="link-button"
                   style={{
                     backgroundColor: theme.buttonColor,
                     borderRadius: `${theme.radius}px`,
