@@ -1,25 +1,43 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const defaultProfile = {
+  name: "Ahmed",
+  bio: "Frontend Developer • Building cool things on the web",
+  avatar:
+    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=400&auto=format&fit=crop",
+};
+
+const defaultLinks = [
+  {
+    id: crypto.randomUUID(),
+    title: "GitHub",
+    url: "https://github.com",
+  },
+  {
+    id: crypto.randomUUID(),
+    title: "Portfolio",
+    url: "https://example.com",
+  },
+];
 
 function App() {
-  const [profile, setProfile] = useState({
-    name: "Ahmed",
-    bio: "Frontend Developer • Building cool things on the web",
-    avatar:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=400&auto=format&fit=crop",
+  const [profile, setProfile] = useState(() => {
+    const saved = localStorage.getItem("profile");
+    return saved ? JSON.parse(saved) : defaultProfile;
   });
 
-  const [links, setLinks] = useState([
-    {
-      id: crypto.randomUUID(),
-      title: "GitHub",
-      url: "https://github.com",
-    },
-    {
-      id: crypto.randomUUID(),
-      title: "Portfolio",
-      url: "https://example.com",
-    },
-  ]);
+  const [links, setLinks] = useState(() => {
+    const saved = localStorage.getItem("links");
+    return saved ? JSON.parse(saved) : defaultLinks;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("profile", JSON.stringify(profile));
+  }, [profile]);
+
+  useEffect(() => {
+    localStorage.setItem("links", JSON.stringify(links));
+  }, [links]);
 
   function handleProfileChange(e) {
     const { name, value } = e.target;
@@ -51,6 +69,14 @@ function App() {
 
   function removeLink(id) {
     setLinks((prev) => prev.filter((link) => link.id !== id));
+  }
+
+  function resetAll() {
+    setProfile(defaultProfile);
+    setLinks(defaultLinks);
+
+    localStorage.removeItem("profile");
+    localStorage.removeItem("links");
   }
 
   return (
@@ -133,6 +159,10 @@ function App() {
               </div>
             ))}
           </div>
+
+          <button onClick={resetAll} className="reset-btn">
+            Reset Everything
+          </button>
         </section>
 
         <section className="preview-panel">
