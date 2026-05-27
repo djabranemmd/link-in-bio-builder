@@ -194,3 +194,11 @@ textarea {
   background: rgba(255,255,255,.08);
   color: white;
 }
+
+.theme-editor {
+  margin-top: 32px;
+}
+
+.theme-editor h3 {
+  margin-bottom: 12px;
+}

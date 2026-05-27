@@ -20,16 +20,39 @@ const defaultLinks = [
   },
 ];
 
-function App() {
-  const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem("profile");
-    return saved ? JSON.parse(saved) : defaultProfile;
-  });
+const defaultTheme = {
+  background: "#070b14",
+  buttonColor: "#6d5dfc",
+  radius: 18,
+};
 
-  const [links, setLinks] = useState(() => {
-    const saved = localStorage.getItem("links");
-    return saved ? JSON.parse(saved) : defaultLinks;
-  });
+function App() {
+  const [profile, setProfile] = useState(defaultProfile);
+  const [links, setLinks] = useState(defaultLinks);
+  const [theme, setTheme] = useState(defaultTheme);
+
+  useEffect(() => {
+    try {
+      const savedProfile = localStorage.getItem("profile");
+      const savedLinks = localStorage.getItem("links");
+      const savedTheme = localStorage.getItem("theme");
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (savedProfile) setProfile(JSON.parse(savedProfile));
+      if (savedLinks) setLinks(JSON.parse(savedLinks));
+      if (savedTheme) {
+        const parsedTheme = JSON.parse(savedTheme);
+
+        setTheme({
+          background: parsedTheme.background || defaultTheme.background,
+          buttonColor: parsedTheme.buttonColor || defaultTheme.buttonColor,
+          radius: Number(parsedTheme.radius) || defaultTheme.radius,
+        });
+      }
+    } catch (error) {
+      console.error("LocalStorage error:", error);
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("profile", JSON.stringify(profile));
@@ -39,12 +62,25 @@ function App() {
     localStorage.setItem("links", JSON.stringify(links));
   }, [links]);
 
+  useEffect(() => {
+    localStorage.setItem("theme", JSON.stringify(theme));
+  }, [theme]);
+
   function handleProfileChange(e) {
     const { name, value } = e.target;
 
     setProfile((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  }
+
+  function handleThemeChange(e) {
+    const { name, value } = e.target;
+
+    setTheme((prev) => ({
+      ...prev,
+      [name]: name === "radius" ? Number(value) : value,
     }));
   }
 
@@ -74,13 +110,20 @@ function App() {
   function resetAll() {
     setProfile(defaultProfile);
     setLinks(defaultLinks);
+    setTheme(defaultTheme);
 
     localStorage.removeItem("profile");
     localStorage.removeItem("links");
+    localStorage.removeItem("theme");
   }
 
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      style={{
+        backgroundColor: theme.background,
+      }}
+    >
       <div className="aurora aurora-1"></div>
       <div className="aurora aurora-2"></div>
 
@@ -90,9 +133,7 @@ function App() {
 
           <div className="form-group">
             <label>Name</label>
-
             <input
-              type="text"
               name="name"
               value={profile.name}
               onChange={handleProfileChange}
@@ -101,10 +142,9 @@ function App() {
 
           <div className="form-group">
             <label>Bio</label>
-
             <textarea
-              rows="4"
               name="bio"
+              rows="4"
               value={profile.bio}
               onChange={handleProfileChange}
             />
@@ -112,9 +152,7 @@ function App() {
 
           <div className="form-group">
             <label>Avatar URL</label>
-
             <input
-              type="text"
               name="avatar"
               value={profile.avatar}
               onChange={handleProfileChange}
@@ -125,7 +163,7 @@ function App() {
             <div className="links-header">
               <h3>Links</h3>
 
-              <button onClick={addLink} className="add-btn">
+              <button className="add-btn" onClick={addLink}>
                 + Add Link
               </button>
             </div>
@@ -133,7 +171,6 @@ function App() {
             {links.map((link) => (
               <div key={link.id} className="link-editor-card">
                 <input
-                  type="text"
                   placeholder="Title"
                   value={link.title}
                   onChange={(e) =>
@@ -142,7 +179,6 @@ function App() {
                 />
 
                 <input
-                  type="text"
                   placeholder="URL"
                   value={link.url}
                   onChange={(e) =>
@@ -151,8 +187,8 @@ function App() {
                 />
 
                 <button
-                  onClick={() => removeLink(link.id)}
                   className="delete-btn"
+                  onClick={() => removeLink(link.id)}
                 >
                   Delete
                 </button>
@@ -160,7 +196,43 @@ function App() {
             ))}
           </div>
 
-          <button onClick={resetAll} className="reset-btn">
+          <div className="theme-editor">
+            <h3>Theme</h3>
+
+            <div className="form-group">
+              <label>Background Color</label>
+              <input
+                type="color"
+                name="background"
+                value={theme.background}
+                onChange={handleThemeChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Button Color</label>
+              <input
+                type="color"
+                name="buttonColor"
+                value={theme.buttonColor}
+                onChange={handleThemeChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Border Radius ({theme.radius}px)</label>
+              <input
+                type="range"
+                min="8"
+                max="40"
+                name="radius"
+                value={theme.radius}
+                onChange={handleThemeChange}
+              />
+            </div>
+          </div>
+
+          <button className="reset-btn" onClick={resetAll}>
             Reset Everything
           </button>
         </section>
@@ -181,6 +253,10 @@ function App() {
                   target="_blank"
                   rel="noreferrer"
                   className="link-button"
+                  style={{
+                    backgroundColor: theme.buttonColor,
+                    borderRadius: `${theme.radius}px`,
+                  }}
                 >
                   {link.title || "Untitled Link"}
                 </a>
