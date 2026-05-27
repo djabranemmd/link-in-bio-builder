@@ -1,16 +1,96 @@
-# React + Vite
+# Link-in-Bio Builder
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern customizable link-in-bio website builder inspired by Linktree.
 
-Currently, two official plugins are available:
+Users can create a personal landing page with all their important links in one place, customize its appearance, reorder links with drag and drop, and instantly preview changes in real time.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Live Demo
 
-## React Compiler
+🔗 https://link-in-bio-builder-jet.vercel.app/
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## GitHub Repository
 
-## Expanding the ESLint configuration
+🔗 https://github.com/djabranemmd/link-in-bio-builder
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## Features
+
+- Live profile editing
+- Dynamic link management
+- Add / edit / delete links
+- Drag & drop link sorting
+- Theme customization
+- QR code generation
+- Local storage persistence
+- Responsive design
+- Glassmorphism UI
+- Aurora gradient background
+
+---
+
+## Built With
+
+- React
+- Vite
+- JavaScript
+- CSS
+- @dnd-kit
+- qrcode.react
+
+---
+
+## Getting Started
+
+Clone the project:
+
+```bash
+git clone https://github.com/djabranemmd/link-in-bio-builder.git
+```
+
+## Install dependencies:
+
+```bash
+npm install
+```
+
+## Run locally:
+
+```bash
+npm run dev
+```
+
+## Build for production:
+
+```bash
+npm run build
+```
+
+# Project Structure
+```bash
+src/
+├── App.jsx
+├── main.jsx
+├── index.css
+```
+# Screenshots
+
+## Add screenshots here later:
+
+![App Screenshot](./src/assets/Screenshot%202026-05-28%20at%2012.36.56 AM.png)
+
+# Future Improvements
+
+- Authentication
+- Custom usernames
+- Public shareable profile URLs
+- Export themes
+- Analytics dashboard
+- Click tracking
+- Custom domain support
+- Theme marketplace
+
+# Author
+
+Ahmed Djabrane Mammadi
+Frontend Developer passionate about building modern web experiences.
