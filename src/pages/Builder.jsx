@@ -51,7 +51,8 @@ export default function Builder() {
     useState(false);
 
   useEffect(() => {
-    if (!profile.username?.trim()) return;
+    if (!profile.username?.trim())
+      return;
 
     localStorage.setItem(
       `user-${profile.username
@@ -111,7 +112,11 @@ export default function Builder() {
     ]);
   }
 
-  function updateLink(id, field, value) {
+  function updateLink(
+    id,
+    field,
+    value
+  ) {
     setLinks((prev) =>
       prev.map((link) =>
         link.id === id
@@ -163,6 +168,7 @@ export default function Builder() {
               onAdd={addLink}
               onUpdate={updateLink}
               onDelete={removeLink}
+              onReorder={setLinks}
             />
 
             <ThemeCustomizer
