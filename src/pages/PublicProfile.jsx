@@ -4,33 +4,39 @@ import ProfilePreview from "../components/ProfilePreview";
 export default function PublicProfile() {
   const { username } = useParams();
 
-  const data = JSON.parse(
-    localStorage.getItem(
-      `user-${username.toLowerCase()}`
-    )
+  const saved = localStorage.getItem(
+    `user-${username.toLowerCase()}`
   );
 
-  if (!data) {
+  if (!saved) {
     return (
       <main className="app-shell">
         <div className="container">
           <div className="profile-card glass">
             <h1>User not found</h1>
+
+            <p>
+              This profile does not exist
+            </p>
           </div>
         </div>
       </main>
     );
   }
 
+  const data = JSON.parse(saved);
+
   return (
     <main
       className="app-shell"
       style={{
         backgroundColor:
-          data.theme.background,
+          data.theme?.background ||
+          "#070b14",
       }}
     >
       <div className="aurora aurora-1"></div>
+
       <div className="aurora aurora-2"></div>
 
       <div className="container">

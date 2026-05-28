@@ -12,17 +12,40 @@ export default function QRModal({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-card glass">
+      <div
+        className="modal-card glass"
+        style={{
+          width: "320px",
+          padding: "24px",
+          textAlign: "center",
+        }}
+      >
         <h3>Your QR Code</h3>
 
-        <QRCodeSVG
-          value={profileUrl}
-          size={180}
-          bgColor="transparent"
-          fgColor="#ffffff"
-        />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            margin: "20px 0",
+          }}
+        >
+          <QRCodeSVG
+            value={profileUrl}
+            size={120}
+            bgColor="transparent"
+            fgColor="#ffffff"
+          />
+        </div>
 
-        <p>{profileUrl}</p>
+        <p
+          style={{
+            fontSize: "13px",
+            opacity: ".7",
+            wordBreak: "break-all",
+          }}
+        >
+          {profileUrl}
+        </p>
 
         <button
           className="reset-btn"

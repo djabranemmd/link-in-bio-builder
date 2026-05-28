@@ -2,23 +2,25 @@ import getLinkIcon from "../utils/getLinkIcon";
 
 export default function ProfilePreview({
   profile,
-  links,
+  links = [],
   theme,
 }) {
   return (
     <div className="profile-card glass">
       <img
         src={
-          profile.avatar ||
+          profile?.avatar ||
           "https://via.placeholder.com/150"
         }
-        alt={profile.name}
+        alt={profile?.name || "Profile"}
       />
 
-      <h1>{profile.name || "Your Name"}</h1>
+      <h1>
+        {profile?.name || "Your Name"}
+      </h1>
 
       <p>
-        {profile.bio ||
+        {profile?.bio ||
           "Your bio will appear here"}
       </p>
 
@@ -32,12 +34,17 @@ export default function ProfilePreview({
             rel="noreferrer"
             style={{
               backgroundColor:
-                theme.buttonColor,
-              borderRadius: `${theme.radius}px`,
+                theme?.buttonColor ||
+                "#6d5dfc",
+
+              borderRadius: `${
+                theme?.radius || 18
+              }px`,
             }}
           >
             {getLinkIcon(link.url)}{" "}
-            {link.title || "Untitled Link"}
+            {link.title ||
+              "Untitled Link"}
           </a>
         ))}
       </div>
