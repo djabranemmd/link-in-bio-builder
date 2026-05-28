@@ -1,13 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
 import ShareButton from "../components/ShareButton";
 import ThemeCustomizer from "../components/ThemeCustomizer";
+import QRModal from "../components/QRModal";
 import useLocalStorage from "../hooks/useLocalStorage";
 
 const defaultProfile = {
-  username: "ahmed",
+  username: "",
   name: "",
   bio: "",
   avatar: "",
@@ -28,33 +29,39 @@ const defaultTheme = {
 };
 
 export default function Builder() {
-  const [profile, setProfile] = useLocalStorage(
-    "profile",
-    defaultProfile
-  );
+  const [profile, setProfile] =
+    useLocalStorage(
+      "profile",
+      defaultProfile
+    );
 
-  const [links, setLinks] = useLocalStorage(
-    "links",
-    defaultLinks
-  );
+  const [links, setLinks] =
+    useLocalStorage(
+      "links",
+      defaultLinks
+    );
 
-  const [theme, setTheme] = useLocalStorage(
-    "theme",
-    defaultTheme
-  );
+  const [theme, setTheme] =
+    useLocalStorage(
+      "theme",
+      defaultTheme
+    );
+
+  const [showQR, setShowQR] =
+    useState(false);
 
   useEffect(() => {
     if (!profile.username?.trim()) return;
 
-    const userData = {
-      profile,
-      links,
-      theme,
-    };
-
     localStorage.setItem(
-      `user-${profile.username.trim().toLowerCase()}`,
-      JSON.stringify(userData)
+      `user-${profile.username
+        .trim()
+        .toLowerCase()}`,
+      JSON.stringify({
+        profile,
+        links,
+        theme,
+      })
     );
   }, [profile, links, theme]);
 
@@ -84,7 +91,8 @@ export default function Builder() {
 
     if (!file) return;
 
-    const imageUrl = URL.createObjectURL(file);
+    const imageUrl =
+      URL.createObjectURL(file);
 
     setProfile((prev) => ({
       ...prev,
@@ -107,7 +115,10 @@ export default function Builder() {
     setLinks((prev) =>
       prev.map((link) =>
         link.id === id
-          ? { ...link, [field]: value }
+          ? {
+              ...link,
+              [field]: value,
+            }
           : link
       )
     );
@@ -115,57 +126,89 @@ export default function Builder() {
 
   function removeLink(id) {
     setLinks((prev) =>
-      prev.filter((link) => link.id !== id)
+      prev.filter(
+        (link) => link.id !== id
+      )
     );
   }
 
   return (
-    <main
-      className="app-shell"
-      style={{
-        backgroundColor: theme.background,
-      }}
-    >
-      <div className="aurora aurora-1"></div>
-      <div className="aurora aurora-2"></div>
+    <>
+      <main
+        className="app-shell"
+        style={{
+          backgroundColor:
+            theme.background,
+        }}
+      >
+        <div className="aurora aurora-1"></div>
+        <div className="aurora aurora-2"></div>
 
-      <div className="container">
-        <section className="editor-panel glass">
-          <h2>Link-in-Bio Builder</h2>
+        <div className="container">
+          <section className="editor-panel glass">
+            <h2>
+              Link-in-Bio Builder
+            </h2>
 
-          <ProfileForm
-            profile={profile}
-            onChange={handleChange}
-            onImageUpload={handleImageUpload}
-          />
+            <ProfileForm
+              profile={profile}
+              onChange={handleChange}
+              onImageUpload={
+                handleImageUpload
+              }
+            />
 
-          <LinksEditor
-            links={links}
-            onAdd={addLink}
-            onUpdate={updateLink}
-            onDelete={removeLink}
-          />
+            <LinksEditor
+              links={links}
+              onAdd={addLink}
+              onUpdate={updateLink}
+              onDelete={removeLink}
+            />
 
-          <ThemeCustomizer
-            theme={theme}
-            onChange={handleThemeChange}
-          />
+            <ThemeCustomizer
+              theme={theme}
+              onChange={
+                handleThemeChange
+              }
+            />
 
-          <ShareButton
-            username={
-              profile.username || "your-profile"
-            }
-          />
-        </section>
+            <ShareButton
+              username={
+                profile.username ||
+                "your-profile"
+              }
+            />
 
-        <section className="preview-panel">
-          <ProfilePreview
-            profile={profile}
-            links={links}
-            theme={theme}
-          />
-        </section>
-      </div>
-    </main>
+            <button
+              className="add-btn"
+              onClick={() =>
+                setShowQR(true)
+              }
+            >
+              Show QR Code
+            </button>
+          </section>
+
+          <section className="preview-panel">
+            <ProfilePreview
+              profile={profile}
+              links={links}
+              theme={theme}
+            />
+          </section>
+        </div>
+      </main>
+
+      <QRModal
+        username={
+          profile.username ||
+          "your-profile"
+        }
+        isOpen={showQR}
+        onClose={() =>
+          setShowQR(false)
+        }
+      />
+    </>
   );
 }
