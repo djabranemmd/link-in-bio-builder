@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
@@ -6,7 +7,7 @@ import ThemeCustomizer from "../components/ThemeCustomizer";
 import useLocalStorage from "../hooks/useLocalStorage";
 
 const defaultProfile = {
-  username: "",
+  username: "ahmed",
   name: "",
   bio: "",
   avatar: "",
@@ -27,23 +28,35 @@ const defaultTheme = {
 };
 
 export default function Builder() {
-  const [profile, setProfile] =
-    useLocalStorage(
-      "profile",
-      defaultProfile
-    );
+  const [profile, setProfile] = useLocalStorage(
+    "profile",
+    defaultProfile
+  );
 
-  const [links, setLinks] =
-    useLocalStorage(
-      "links",
-      defaultLinks
-    );
+  const [links, setLinks] = useLocalStorage(
+    "links",
+    defaultLinks
+  );
 
-  const [theme, setTheme] =
-    useLocalStorage(
-      "theme",
-      defaultTheme
+  const [theme, setTheme] = useLocalStorage(
+    "theme",
+    defaultTheme
+  );
+
+  useEffect(() => {
+    if (!profile.username?.trim()) return;
+
+    const userData = {
+      profile,
+      links,
+      theme,
+    };
+
+    localStorage.setItem(
+      `user-${profile.username.trim().toLowerCase()}`,
+      JSON.stringify(userData)
     );
+  }, [profile, links, theme]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -71,8 +84,7 @@ export default function Builder() {
 
     if (!file) return;
 
-    const imageUrl =
-      URL.createObjectURL(file);
+    const imageUrl = URL.createObjectURL(file);
 
     setProfile((prev) => ({
       ...prev,
@@ -95,10 +107,7 @@ export default function Builder() {
     setLinks((prev) =>
       prev.map((link) =>
         link.id === id
-          ? {
-              ...link,
-              [field]: value,
-            }
+          ? { ...link, [field]: value }
           : link
       )
     );
@@ -106,9 +115,7 @@ export default function Builder() {
 
   function removeLink(id) {
     setLinks((prev) =>
-      prev.filter(
-        (link) => link.id !== id
-      )
+      prev.filter((link) => link.id !== id)
     );
   }
 
@@ -146,8 +153,7 @@ export default function Builder() {
 
           <ShareButton
             username={
-              profile.username ||
-              "your-profile"
+              profile.username || "your-profile"
             }
           />
         </section>
