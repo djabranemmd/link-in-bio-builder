@@ -1,5 +1,8 @@
+import getLinkIcon from "../utils/getLinkIcon";
+
 export default function ProfilePreview({
   profile,
+  links,
 }) {
   return (
     <div className="profile-card glass">
@@ -17,6 +20,21 @@ export default function ProfilePreview({
         {profile.bio ||
           "Your bio will appear here"}
       </p>
+
+      <div className="links-wrapper">
+        {links.map((link) => (
+          <a
+            key={link.id}
+            href={link.url || "#"}
+            className="link-button"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {getLinkIcon(link.url)}{" "}
+            {link.title || "Untitled Link"}
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

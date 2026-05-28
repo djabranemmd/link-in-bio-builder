@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
+import LinksEditor from "../components/LinksEditor";
 
 const defaultProfile = {
   username: "",
@@ -12,6 +13,14 @@ const defaultProfile = {
 export default function Builder() {
   const [profile, setProfile] =
     useState(defaultProfile);
+
+  const [links, setLinks] = useState([
+    {
+      id: crypto.randomUUID(),
+      title: "",
+      url: "",
+    },
+  ]);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -36,6 +45,36 @@ export default function Builder() {
     }));
   }
 
+  function addLink() {
+    setLinks((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        title: "",
+        url: "",
+      },
+    ]);
+  }
+
+  function updateLink(id, field, value) {
+    setLinks((prev) =>
+      prev.map((link) =>
+        link.id === id
+          ? {
+              ...link,
+              [field]: value,
+            }
+          : link
+      )
+    );
+  }
+
+  function removeLink(id) {
+    setLinks((prev) =>
+      prev.filter((link) => link.id !== id)
+    );
+  }
+
   return (
     <main className="app-shell">
       <div className="aurora aurora-1"></div>
@@ -50,11 +89,19 @@ export default function Builder() {
             onChange={handleChange}
             onImageUpload={handleImageUpload}
           />
+
+          <LinksEditor
+            links={links}
+            onAdd={addLink}
+            onUpdate={updateLink}
+            onDelete={removeLink}
+          />
         </section>
 
         <section className="preview-panel">
           <ProfilePreview
             profile={profile}
+            links={links}
           />
         </section>
       </div>
