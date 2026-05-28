@@ -1,7 +1,8 @@
-import { useState } from "react";
 import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
+import ShareButton from "../components/ShareButton";
+import useLocalStorage from "../hooks/useLocalStorage";
 
 const defaultProfile = {
   username: "",
@@ -10,17 +11,26 @@ const defaultProfile = {
   avatar: "",
 };
 
+const defaultLinks = [
+  {
+    id: crypto.randomUUID(),
+    title: "",
+    url: "",
+  },
+];
+
 export default function Builder() {
   const [profile, setProfile] =
-    useState(defaultProfile);
+    useLocalStorage(
+      "profile",
+      defaultProfile
+    );
 
-  const [links, setLinks] = useState([
-    {
-      id: crypto.randomUUID(),
-      title: "",
-      url: "",
-    },
-  ]);
+  const [links, setLinks] =
+    useLocalStorage(
+      "links",
+      defaultLinks
+    );
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -71,7 +81,9 @@ export default function Builder() {
 
   function removeLink(id) {
     setLinks((prev) =>
-      prev.filter((link) => link.id !== id)
+      prev.filter(
+        (link) => link.id !== id
+      )
     );
   }
 
@@ -95,6 +107,13 @@ export default function Builder() {
             onAdd={addLink}
             onUpdate={updateLink}
             onDelete={removeLink}
+          />
+
+          <ShareButton
+            username={
+              profile.username ||
+              "your-profile"
+            }
           />
         </section>
 
