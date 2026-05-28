@@ -1,30 +1,10 @@
 import { useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import {
-  DndContext,
-  closestCenter,
-} from "@dnd-kit/core";
-
-import {
-  SortableContext,
-  arrayMove,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-
-import { CSS } from "@dnd-kit/utilities";
 
 const defaultProfile = {
+  username: "ahmed",
   name: "Ahmed",
   bio: "Frontend Developer • Building cool things on the web",
-  avatar:
-    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=400&auto=format&fit=crop",
-};
-
-const defaultTheme = {
-  background: "#070b14",
-  buttonColor: "#6d5dfc",
-  radius: 18,
+  avatar: "",
 };
 
 const defaultLinks = [
@@ -35,74 +15,56 @@ const defaultLinks = [
   },
 ];
 
-function SortableLinkEditor({
-  link,
-  handleLinkChange,
-  removeLink,
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({
-    id: link.id,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
-      className="link-editor-card"
-    >
-      <div
-        className="drag-handle"
-        {...attributes}
-        {...listeners}
-      >
-        ⋮⋮
-      </div>
-
-      <input
-        value={link.title}
-        placeholder="Title"
-        onChange={(e) =>
-          handleLinkChange(link.id, "title", e.target.value)
-        }
-      />
-
-      <input
-        value={link.url}
-        placeholder="URL"
-        onChange={(e) =>
-          handleLinkChange(link.id, "url", e.target.value)
-        }
-      />
-
-      <button
-        className="delete-btn"
-        onClick={() => removeLink(link.id)}
-      >
-        Delete
-      </button>
-    </div>
-  );
-}
+const defaultTheme = {
+  background: "#070b14",
+  buttonColor: "#6d5dfc",
+  radius: 18,
+};
 
 function App() {
   const [profile, setProfile] = useState(defaultProfile);
-  const [theme, setTheme] = useState(defaultTheme);
   const [links, setLinks] = useState(defaultLinks);
+  const [theme, setTheme] = useState(defaultTheme);
 
   useEffect(() => {
-    localStorage.setItem("profile", JSON.stringify(profile));
-    localStorage.setItem("theme", JSON.stringify(theme));
-    localStorage.setItem("links", JSON.stringify(links));
-  }, [profile, theme, links]);
+    const saved = localStorage.getItem("link-bio-data");
+
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved);
+
+      setProfile({
+        ...parsed.profile,
+        avatar: "",
+      });
+
+      setLinks(parsed.links || defaultLinks);
+      setTheme(parsed.theme || defaultTheme);
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const dataToSave = {
+        profile: {
+          ...profile,
+          avatar: "",
+        },
+        links,
+        theme,
+      };
+
+      localStorage.setItem(
+        "link-bio-data",
+        JSON.stringify(dataToSave)
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }, [profile, links, theme]);
 
   function handleProfileChange(e) {
     const { name, value } = e.target;
@@ -113,14 +75,22 @@ function App() {
     }));
   }
 
-  function handleLinkChange(id, field, value) {
-    setLinks((prev) =>
-      prev.map((link) =>
-        link.id === id
-          ? { ...link, [field]: value }
-          : link
-      )
-    );
+  function handleImageUpload(e) {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Please choose an image smaller than 2MB");
+      return;
+    }
+
+    const imageUrl = URL.createObjectURL(file);
+
+    setProfile((prev) => ({
+      ...prev,
+      avatar: imageUrl,
+    }));
   }
 
   function addLink() {
@@ -134,35 +104,29 @@ function App() {
     ]);
   }
 
+  function updateLink(id, field, value) {
+    setLinks((prev) =>
+      prev.map((link) =>
+        link.id === id
+          ? { ...link, [field]: value }
+          : link
+      )
+    );
+  }
+
   function removeLink(id) {
     setLinks((prev) =>
       prev.filter((link) => link.id !== id)
     );
   }
 
-  function handleDragEnd(event) {
-    const { active, over } = event;
+  function shareProfile() {
+    const url = `${window.location.origin}/${profile.username}`;
 
-    if (!over) return;
+    navigator.clipboard.writeText(url);
 
-    if (active.id !== over.id) {
-      setLinks((items) => {
-        const oldIndex = items.findIndex(
-          (item) => item.id === active.id
-        );
-
-        const newIndex = items.findIndex(
-          (item) => item.id === over.id
-        );
-
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
+    alert("Profile link copied to clipboard");
   }
-
-  const generatedUrl = `https://your-link-page.com/${profile.name
-    .toLowerCase()
-    .replace(/\s+/g, "-")}`;
 
   return (
     <main
@@ -177,6 +141,16 @@ function App() {
       <div className="container">
         <section className="editor-panel glass">
           <h2>Customize Profile</h2>
+
+          <div className="form-group">
+            <label>Username</label>
+
+            <input
+              name="username"
+              value={profile.username}
+              onChange={handleProfileChange}
+            />
+          </div>
 
           <div className="form-group">
             <label>Name</label>
@@ -200,12 +174,12 @@ function App() {
           </div>
 
           <div className="form-group">
-            <label>Avatar URL</label>
+            <label>Profile Image</label>
 
             <input
-              name="avatar"
-              value={profile.avatar}
-              onChange={handleProfileChange}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleImageUpload}
             />
           </div>
 
@@ -214,48 +188,73 @@ function App() {
               <h3>Links</h3>
 
               <button
-                onClick={addLink}
                 className="add-btn"
+                onClick={addLink}
               >
                 + Add Link
               </button>
             </div>
 
-            <DndContext
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={links}
-                strategy={verticalListSortingStrategy}
+            {links.map((link) => (
+              <div
+                key={link.id}
+                className="link-editor-card"
               >
-                {links.map((link) => (
-                  <SortableLinkEditor
-                    key={link.id}
-                    link={link}
-                    handleLinkChange={handleLinkChange}
-                    removeLink={removeLink}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+                <input
+                  placeholder="Title"
+                  value={link.title}
+                  onChange={(e) =>
+                    updateLink(
+                      link.id,
+                      "title",
+                      e.target.value
+                    )
+                  }
+                />
+
+                <input
+                  placeholder="URL"
+                  value={link.url}
+                  onChange={(e) =>
+                    updateLink(
+                      link.id,
+                      "url",
+                      e.target.value
+                    )
+                  }
+                />
+
+                <button
+                  className="delete-btn"
+                  onClick={() => removeLink(link.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
           </div>
 
-          <div className="qr-section">
-            <h3>QR Code</h3>
-
-            <QRCodeSVG
-              value={generatedUrl}
-              size={140}
-              bgColor="#ffffff"
-              fgColor="#000000"
-            />
-          </div>
+          <button
+            className="reset-btn"
+            onClick={shareProfile}
+          >
+            Share Profile
+          </button>
         </section>
 
         <section className="preview-panel">
           <div className="profile-card glass">
-            <img src={profile.avatar} alt={profile.name} />
+            <img
+              src={
+                profile.avatar ||
+                "https://via.placeholder.com/150"
+              }
+              alt={profile.name}
+              onError={(e) => {
+                e.currentTarget.src =
+                  "https://via.placeholder.com/150";
+              }}
+            />
 
             <h1>{profile.name}</h1>
 
