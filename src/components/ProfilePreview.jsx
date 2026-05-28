@@ -3,6 +3,7 @@ import getLinkIcon from "../utils/getLinkIcon";
 export default function ProfilePreview({
   profile,
   links,
+  theme,
 }) {
   return (
     <div className="profile-card glass">
@@ -29,6 +30,11 @@ export default function ProfilePreview({
             className="link-button"
             target="_blank"
             rel="noreferrer"
+            style={{
+              backgroundColor:
+                theme.buttonColor,
+              borderRadius: `${theme.radius}px`,
+            }}
           >
             {getLinkIcon(link.url)}{" "}
             {link.title || "Untitled Link"}

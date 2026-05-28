@@ -2,6 +2,7 @@ import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
 import ShareButton from "../components/ShareButton";
+import ThemeCustomizer from "../components/ThemeCustomizer";
 import useLocalStorage from "../hooks/useLocalStorage";
 
 const defaultProfile = {
@@ -19,6 +20,12 @@ const defaultLinks = [
   },
 ];
 
+const defaultTheme = {
+  background: "#070b14",
+  buttonColor: "#6d5dfc",
+  radius: 18,
+};
+
 export default function Builder() {
   const [profile, setProfile] =
     useLocalStorage(
@@ -32,12 +39,30 @@ export default function Builder() {
       defaultLinks
     );
 
+  const [theme, setTheme] =
+    useLocalStorage(
+      "theme",
+      defaultTheme
+    );
+
   function handleChange(e) {
     const { name, value } = e.target;
 
     setProfile((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  }
+
+  function handleThemeChange(e) {
+    const { name, value } = e.target;
+
+    setTheme((prev) => ({
+      ...prev,
+      [name]:
+        name === "radius"
+          ? Number(value)
+          : value,
     }));
   }
 
@@ -88,7 +113,12 @@ export default function Builder() {
   }
 
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      style={{
+        backgroundColor: theme.background,
+      }}
+    >
       <div className="aurora aurora-1"></div>
       <div className="aurora aurora-2"></div>
 
@@ -109,6 +139,11 @@ export default function Builder() {
             onDelete={removeLink}
           />
 
+          <ThemeCustomizer
+            theme={theme}
+            onChange={handleThemeChange}
+          />
+
           <ShareButton
             username={
               profile.username ||
@@ -121,6 +156,7 @@ export default function Builder() {
           <ProfilePreview
             profile={profile}
             links={links}
+            theme={theme}
           />
         </section>
       </div>
