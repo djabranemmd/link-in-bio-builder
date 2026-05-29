@@ -1,32 +1,30 @@
 import { useParams } from "react-router-dom";
 import ProfilePreview from "../components/ProfilePreview";
 
-export default function PublicPage() {
+export default function PublicProfile() {
   const { username } = useParams();
 
-  const savedUser = localStorage.getItem(
+  const saved = localStorage.getItem(
     `user-${username.toLowerCase()}`
   );
 
-  if (!savedUser) {
+  if (!saved) {
     return (
       <main className="app-shell">
         <div className="container">
-          <section className="preview-panel">
-            <div className="profile-card glass">
-              <h1>User not found</h1>
+          <div className="profile-card glass">
+            <h1>User not found</h1>
 
-              <p>
-                This profile does not exist.
-              </p>
-            </div>
-          </section>
+            <p>
+              This profile does not exist
+            </p>
+          </div>
         </div>
       </main>
     );
   }
 
-  const data = JSON.parse(savedUser);
+  const data = JSON.parse(saved);
 
   return (
     <main
@@ -38,13 +36,14 @@ export default function PublicPage() {
       }}
     >
       <div className="aurora aurora-1"></div>
+
       <div className="aurora aurora-2"></div>
 
       <div className="container">
         <section className="preview-panel">
           <ProfilePreview
             profile={data.profile}
-            links={data.links || []}
+            links={data.links}
             theme={data.theme}
           />
         </section>
