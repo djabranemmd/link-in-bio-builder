@@ -6,6 +6,7 @@ import {
 
 import * as htmlToImage from "html-to-image";
 
+import UserBar from "../components/UserBar";
 import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
@@ -261,6 +262,7 @@ export default function Builder() {
 
         <div className="container">
           <section className="editor-panel glass">
+            <UserBar />
             <h2>
               Link-in-Bio Builder
             </h2>
