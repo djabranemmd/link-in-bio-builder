@@ -114,6 +114,12 @@ export default function Builder() {
     }));
   }
 
+  function handlePresetSelect(
+    preset
+  ) {
+    setTheme(preset);
+  }
+
   function handleImageUpload(e) {
     const file = e.target.files?.[0];
 
@@ -198,6 +204,9 @@ export default function Builder() {
               theme={theme}
               onChange={
                 handleThemeChange
+              }
+              onPresetSelect={
+                handlePresetSelect
               }
             />
 
