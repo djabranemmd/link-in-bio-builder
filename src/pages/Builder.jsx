@@ -86,15 +86,89 @@ export default function Builder() {
     const link =
       document.createElement("a");
 
-    link.download = `${profile.username}-profile.png`;
+    link.download =
+      `${profile.username}-profile.png`;
 
     link.href = dataUrl;
 
     link.click();
   }
 
+  function exportJson() {
+    const data = {
+      profile,
+      links,
+      theme,
+    };
+
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          data,
+          null,
+          2
+        ),
+      ],
+      {
+        type: "application/json",
+      }
+    );
+
+    const url =
+      URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+      `${profile.username}-profile.json`;
+
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function importJson(event) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) return;
+
+    const reader =
+      new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(
+          e.target.result
+        );
+
+        if (data.profile)
+          setProfile(
+            data.profile
+          );
+
+        if (data.links)
+          setLinks(data.links);
+
+        if (data.theme)
+          setTheme(data.theme);
+      } catch (error) {
+        console.error(
+          "Invalid JSON file",
+          error
+        );
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
   function handleChange(e) {
-    const { name, value } = e.target;
+    const { name, value } =
+      e.target;
 
     setProfile((prev) => ({
       ...prev,
@@ -103,7 +177,8 @@ export default function Builder() {
   }
 
   function handleThemeChange(e) {
-    const { name, value } = e.target;
+    const { name, value } =
+      e.target;
 
     setTheme((prev) => ({
       ...prev,
@@ -121,7 +196,8 @@ export default function Builder() {
   }
 
   function handleImageUpload(e) {
-    const file = e.target.files?.[0];
+    const file =
+      e.target.files?.[0];
 
     if (!file) return;
 
@@ -145,7 +221,11 @@ export default function Builder() {
     ]);
   }
 
-  function updateLink(id, field, value) {
+  function updateLink(
+    id,
+    field,
+    value
+  ) {
     setLinks((prev) =>
       prev.map((link) =>
         link.id === id
@@ -161,7 +241,8 @@ export default function Builder() {
   function removeLink(id) {
     setLinks((prev) =>
       prev.filter(
-        (link) => link.id !== id
+        (link) =>
+          link.id !== id
       )
     );
   }
@@ -232,6 +313,34 @@ export default function Builder() {
             >
               Export as Image
             </button>
+
+            <button
+              className="add-btn"
+              onClick={exportJson}
+            >
+              Export JSON
+            </button>
+
+            <label
+              className="add-btn"
+              style={{
+                display:
+                  "inline-block",
+                textAlign:
+                  "center",
+              }}
+            >
+              Import JSON
+
+              <input
+                type="file"
+                accept=".json"
+                hidden
+                onChange={
+                  importJson
+                }
+              />
+            </label>
           </section>
 
           <section className="preview-panel">
