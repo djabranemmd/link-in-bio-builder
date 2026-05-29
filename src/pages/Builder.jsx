@@ -1,4 +1,11 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+} from "react";
+
+import * as htmlToImage from "html-to-image";
+
 import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
@@ -29,6 +36,8 @@ const defaultTheme = {
 };
 
 export default function Builder() {
+  const previewRef = useRef(null);
+
   const [profile, setProfile] =
     useLocalStorage(
       "profile",
@@ -65,6 +74,24 @@ export default function Builder() {
       })
     );
   }, [profile, links, theme]);
+
+  async function exportImage() {
+    if (!previewRef.current) return;
+
+    const dataUrl =
+      await htmlToImage.toPng(
+        previewRef.current
+      );
+
+    const link =
+      document.createElement("a");
+
+    link.download = `${profile.username}-profile.png`;
+
+    link.href = dataUrl;
+
+    link.click();
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -112,11 +139,7 @@ export default function Builder() {
     ]);
   }
 
-  function updateLink(
-    id,
-    field,
-    value
-  ) {
+  function updateLink(id, field, value) {
     setLinks((prev) =>
       prev.map((link) =>
         link.id === id
@@ -193,10 +216,18 @@ export default function Builder() {
             >
               Show QR Code
             </button>
+
+            <button
+              className="add-btn"
+              onClick={exportImage}
+            >
+              Export as Image
+            </button>
           </section>
 
           <section className="preview-panel">
             <ProfilePreview
+              ref={previewRef}
               profile={profile}
               links={links}
               theme={theme}
