@@ -1,22 +1,50 @@
+import { useState } from "react";
+
 export default function ShareButton({
   username,
 }) {
-  function handleShare() {
-    const shareUrl = `${window.location.origin}/${username}`;
+  const [copied, setCopied] =
+    useState(false);
 
-    navigator.clipboard.writeText(
-      shareUrl
-    );
+  async function handleShare() {
+    const shareUrl =
+      `${window.location.origin}/${username}`;
 
-    alert("Profile link copied to clipboard");
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${username}'s profile`,
+          text: "Check out my profile",
+          url: shareUrl,
+        });
+
+        return;
+      }
+
+      await navigator.clipboard.writeText(
+        shareUrl
+      );
+
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
-    <button
-      className="reset-btn"
-      onClick={handleShare}
-    >
-      Share Profile
-    </button>
+    <div>
+      <button
+        className="add-btn"
+        onClick={handleShare}
+      >
+        {copied
+          ? "Copied ✓"
+          : "Share Profile"}
+      </button>
+    </div>
   );
 }
