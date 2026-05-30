@@ -6,6 +6,16 @@ import {
 
 import * as htmlToImage from "html-to-image";
 
+import {
+  doc,
+  getDoc,
+  setDoc,
+} from "firebase/firestore";
+
+import { db } from "../lib/firebase";
+
+import { useAuth } from "../context/AuthContext";
+
 import UserBar from "../components/UserBar";
 import ProfileForm from "../components/ProfileForm";
 import ProfilePreview from "../components/ProfilePreview";
@@ -37,6 +47,8 @@ const defaultTheme = {
 };
 
 export default function Builder() {
+  const { user } = useAuth();
+
   const previewRef = useRef(null);
 
   const [profile, setProfile] =
@@ -61,23 +73,102 @@ export default function Builder() {
     useState(false);
 
   useEffect(() => {
-    if (!profile.username?.trim())
-      return;
+    async function loadUserData() {
+      if (!user) return;
 
-    localStorage.setItem(
-      `user-${profile.username
-        .trim()
-        .toLowerCase()}`,
-      JSON.stringify({
-        profile,
-        links,
-        theme,
-      })
-    );
-  }, [profile, links, theme]);
+      const ref = doc(
+        db,
+        "users",
+        user.uid
+      );
+
+      const snap =
+        await getDoc(ref);
+
+      if (snap.exists()) {
+        const data = snap.data();
+
+        if (data.profile)
+          setProfile(
+            data.profile
+          );
+
+        if (data.links)
+          setLinks(
+            data.links
+          );
+
+        if (data.theme)
+          setTheme(
+            data.theme
+          );
+      }
+    }
+
+    loadUserData();
+  }, [user]);
+
+  useEffect(() => {
+    async function saveUserData() {
+      if (!user) {
+        if (
+          profile.username?.trim()
+        ) {
+          localStorage.setItem(
+            `user-${profile.username
+              .trim()
+              .toLowerCase()}`,
+            JSON.stringify({
+              profile,
+              links,
+              theme,
+            })
+          );
+        }
+
+        return;
+      }
+
+      await setDoc(
+        doc(
+          db,
+          "users",
+          user.uid
+        ),
+        {
+          profile,
+          links,
+          theme,
+        }
+      );
+
+      if (
+        profile.username?.trim()
+      ) {
+        localStorage.setItem(
+          `user-${profile.username
+            .trim()
+            .toLowerCase()}`,
+          JSON.stringify({
+            profile,
+            links,
+            theme,
+          })
+        );
+      }
+    }
+
+    saveUserData();
+  }, [
+    user,
+    profile,
+    links,
+    theme,
+  ]);
 
   async function exportImage() {
-    if (!previewRef.current) return;
+    if (!previewRef.current)
+      return;
 
     const dataUrl =
       await htmlToImage.toPng(
@@ -111,12 +202,15 @@ export default function Builder() {
         ),
       ],
       {
-        type: "application/json",
+        type:
+          "application/json",
       }
     );
 
     const url =
-      URL.createObjectURL(blob);
+      URL.createObjectURL(
+        blob
+      );
 
     const link =
       document.createElement("a");
@@ -128,40 +222,42 @@ export default function Builder() {
 
     link.click();
 
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(
+      url
+    );
   }
 
-  function importJson(event) {
+  function importJson(e) {
     const file =
-      event.target.files?.[0];
+      e.target.files?.[0];
 
     if (!file) return;
 
     const reader =
       new FileReader();
 
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(
-          e.target.result
+    reader.onload = (
+      event
+    ) => {
+      const data =
+        JSON.parse(
+          event.target.result
         );
 
-        if (data.profile)
-          setProfile(
-            data.profile
-          );
-
-        if (data.links)
-          setLinks(data.links);
-
-        if (data.theme)
-          setTheme(data.theme);
-      } catch (error) {
-        console.error(
-          "Invalid JSON file",
-          error
+      if (data.profile)
+        setProfile(
+          data.profile
         );
-      }
+
+      if (data.links)
+        setLinks(
+          data.links
+        );
+
+      if (data.theme)
+        setTheme(
+          data.theme
+        );
     };
 
     reader.readAsText(file);
@@ -177,7 +273,9 @@ export default function Builder() {
     }));
   }
 
-  function handleThemeChange(e) {
+  function handleThemeChange(
+    e
+  ) {
     const { name, value } =
       e.target;
 
@@ -203,7 +301,9 @@ export default function Builder() {
     if (!file) return;
 
     const imageUrl =
-      URL.createObjectURL(file);
+      URL.createObjectURL(
+        file
+      );
 
     setProfile((prev) => ({
       ...prev,
@@ -263,6 +363,7 @@ export default function Builder() {
         <div className="container">
           <section className="editor-panel glass">
             <UserBar />
+
             <h2>
               Link-in-Bio Builder
             </h2>
@@ -270,9 +371,7 @@ export default function Builder() {
             <ProfileForm
               profile={profile}
               onChange={handleChange}
-              onImageUpload={
-                handleImageUpload
-              }
+              onImageUpload={handleImageUpload}
             />
 
             <LinksEditor
@@ -285,12 +384,8 @@ export default function Builder() {
 
             <ThemeCustomizer
               theme={theme}
-              onChange={
-                handleThemeChange
-              }
-              onPresetSelect={
-                handlePresetSelect
-              }
+              onChange={handleThemeChange}
+              onPresetSelect={handlePresetSelect}
             />
 
             <ShareButton
@@ -328,19 +423,14 @@ export default function Builder() {
               style={{
                 display:
                   "inline-block",
-                textAlign:
-                  "center",
               }}
             >
               Import JSON
-
               <input
                 type="file"
                 accept=".json"
                 hidden
-                onChange={
-                  importJson
-                }
+                onChange={importJson}
               />
             </label>
           </section>
