@@ -12,7 +12,16 @@ import {
   setDoc,
 } from "firebase/firestore";
 
-import { db } from "../lib/firebase";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+
+import {
+  db,
+  storage,
+} from "../lib/firebase";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -76,14 +85,14 @@ export default function Builder() {
     async function loadUserData() {
       if (!user) return;
 
-      const ref = doc(
-        db,
-        "users",
-        user.uid
-      );
-
       const snap =
-        await getDoc(ref);
+        await getDoc(
+          doc(
+            db,
+            "users",
+            user.uid
+          )
+        );
 
       if (snap.exists()) {
         const data = snap.data();
@@ -109,25 +118,8 @@ export default function Builder() {
   }, [user]);
 
   useEffect(() => {
-    async function saveUserData() {
-      if (!user) {
-        if (
-          profile.username?.trim()
-        ) {
-          localStorage.setItem(
-            `user-${profile.username
-              .trim()
-              .toLowerCase()}`,
-            JSON.stringify({
-              profile,
-              links,
-              theme,
-            })
-          );
-        }
-
-        return;
-      }
+    async function saveData() {
+      if (!user) return;
 
       await setDoc(
         doc(
@@ -141,30 +133,68 @@ export default function Builder() {
           theme,
         }
       );
-
-      if (
-        profile.username?.trim()
-      ) {
-        localStorage.setItem(
-          `user-${profile.username
-            .trim()
-            .toLowerCase()}`,
-          JSON.stringify({
-            profile,
-            links,
-            theme,
-          })
-        );
-      }
     }
 
-    saveUserData();
+    saveData();
   }, [
     user,
     profile,
     links,
     theme,
   ]);
+
+  async function handleImageUpload(
+    e
+  ) {
+    const file =
+      e.target.files?.[0];
+
+    if (!file) return;
+
+    try {
+      if (!user) {
+        const previewUrl =
+          URL.createObjectURL(
+            file
+          );
+
+        setProfile(
+          (prev) => ({
+            ...prev,
+            avatar:
+              previewUrl,
+          })
+        );
+
+        return;
+      }
+
+      const storageRef = ref(
+        storage,
+        `avatars/${user.uid}`
+      );
+
+      await uploadBytes(
+        storageRef,
+        file
+      );
+
+      const downloadURL =
+        await getDownloadURL(
+          storageRef
+        );
+
+      setProfile(
+        (prev) => ({
+          ...prev,
+          avatar:
+            downloadURL,
+        })
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function exportImage() {
     if (!previewRef.current)
@@ -218,13 +248,9 @@ export default function Builder() {
     link.href = url;
 
     link.download =
-      `${profile.username}-profile.json`;
+      `${profile.username}.json`;
 
     link.click();
-
-    URL.revokeObjectURL(
-      url
-    );
   }
 
   function importJson(e) {
@@ -244,20 +270,20 @@ export default function Builder() {
           event.target.result
         );
 
-      if (data.profile)
-        setProfile(
-          data.profile
-        );
+      setProfile(
+        data.profile ||
+          defaultProfile
+      );
 
-      if (data.links)
-        setLinks(
-          data.links
-        );
+      setLinks(
+        data.links ||
+          defaultLinks
+      );
 
-      if (data.theme)
-        setTheme(
-          data.theme
-        );
+      setTheme(
+        data.theme ||
+          defaultTheme
+      );
     };
 
     reader.readAsText(file);
@@ -292,23 +318,6 @@ export default function Builder() {
     preset
   ) {
     setTheme(preset);
-  }
-
-  function handleImageUpload(e) {
-    const file =
-      e.target.files?.[0];
-
-    if (!file) return;
-
-    const imageUrl =
-      URL.createObjectURL(
-        file
-      );
-
-    setProfile((prev) => ({
-      ...prev,
-      avatar: imageUrl,
-    }));
   }
 
   function addLink() {
@@ -371,7 +380,9 @@ export default function Builder() {
             <ProfileForm
               profile={profile}
               onChange={handleChange}
-              onImageUpload={handleImageUpload}
+              onImageUpload={
+                handleImageUpload
+              }
             />
 
             <LinksEditor
@@ -384,8 +395,12 @@ export default function Builder() {
 
             <ThemeCustomizer
               theme={theme}
-              onChange={handleThemeChange}
-              onPresetSelect={handlePresetSelect}
+              onChange={
+                handleThemeChange
+              }
+              onPresetSelect={
+                handlePresetSelect
+              }
             />
 
             <ShareButton
@@ -418,18 +433,12 @@ export default function Builder() {
               Export JSON
             </button>
 
-            <label
-              className="add-btn"
-              style={{
-                display:
-                  "inline-block",
-              }}
-            >
+            <label className="add-btn">
               Import JSON
               <input
+                hidden
                 type="file"
                 accept=".json"
-                hidden
                 onChange={importJson}
               />
             </label>
