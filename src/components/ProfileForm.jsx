@@ -2,52 +2,63 @@ export default function ProfileForm({
   profile,
   onChange,
   onImageUpload,
+  usernameStatus,
 }) {
   return (
-    <>
-      <div className="form-group">
-        <label>Username</label>
+    <div>
+      <input
+        type="text"
+        name="username"
+        placeholder="Username"
+        value={profile.username}
+        onChange={onChange}
+      />
 
-        <input
-          name="username"
-          placeholder="ahmed"
-          value={profile.username}
-          onChange={onChange}
-        />
-      </div>
+      {usernameStatus ===
+        "available" && (
+        <p
+          style={{
+            color: "#22c55e",
+            fontSize: "14px",
+          }}
+        >
+          ✓ Available
+        </p>
+      )}
 
-      <div className="form-group">
-        <label>Name</label>
+      {usernameStatus ===
+        "taken" && (
+        <p
+          style={{
+            color: "#ef4444",
+            fontSize: "14px",
+          }}
+        >
+          ✕ Username already
+          taken
+        </p>
+      )}
 
-        <input
-          name="name"
-          placeholder="Ahmed"
-          value={profile.name}
-          onChange={onChange}
-        />
-      </div>
+      <input
+        type="text"
+        name="name"
+        placeholder="Name"
+        value={profile.name}
+        onChange={onChange}
+      />
 
-      <div className="form-group">
-        <label>Bio</label>
+      <textarea
+        name="bio"
+        placeholder="Bio"
+        value={profile.bio}
+        onChange={onChange}
+      />
 
-        <textarea
-          name="bio"
-          rows="4"
-          placeholder="Frontend Developer..."
-          value={profile.bio}
-          onChange={onChange}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Profile Image</label>
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={onImageUpload}
-        />
-      </div>
-    </>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={onImageUpload}
+      />
+    </div>
   );
 }

@@ -10,6 +10,10 @@ import {
   doc,
   getDoc,
   setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 import {
@@ -60,6 +64,9 @@ export default function Builder() {
 
   const previewRef = useRef(null);
 
+  const [usernameStatus, setUsernameStatus] =
+    useState("");
+
   const [profile, setProfile] =
     useLocalStorage(
       "profile",
@@ -85,32 +92,25 @@ export default function Builder() {
     async function loadUserData() {
       if (!user) return;
 
-      const snap =
-        await getDoc(
-          doc(
-            db,
-            "users",
-            user.uid
-          )
-        );
+      const snap = await getDoc(
+        doc(
+          db,
+          "users",
+          user.uid
+        )
+      );
 
       if (snap.exists()) {
         const data = snap.data();
 
         if (data.profile)
-          setProfile(
-            data.profile
-          );
+          setProfile(data.profile);
 
         if (data.links)
-          setLinks(
-            data.links
-          );
+          setLinks(data.links);
 
         if (data.theme)
-          setTheme(
-            data.theme
-          );
+          setTheme(data.theme);
       }
     }
 
@@ -118,8 +118,69 @@ export default function Builder() {
   }, [user]);
 
   useEffect(() => {
+    async function checkUsername() {
+      if (
+        !profile.username?.trim()
+      ) {
+        setUsernameStatus("");
+        return;
+      }
+
+      const username =
+        profile.username
+          .trim()
+          .toLowerCase();
+
+      const q = query(
+        collection(
+          db,
+          "users"
+        ),
+        where(
+          "profile.username",
+          "==",
+          username
+        )
+      );
+
+      const result =
+        await getDocs(q);
+
+      if (result.empty) {
+        setUsernameStatus(
+          "available"
+        );
+        return;
+      }
+
+      const sameUser =
+        result.docs.some(
+          (doc) =>
+            doc.id === user?.uid
+        );
+
+      setUsernameStatus(
+        sameUser
+          ? "available"
+          : "taken"
+      );
+    }
+
+    checkUsername();
+  }, [
+    profile.username,
+    user,
+  ]);
+
+  useEffect(() => {
     async function saveData() {
       if (!user) return;
+
+      if (
+        usernameStatus ===
+        "taken"
+      )
+        return;
 
       await setDoc(
         doc(
@@ -128,7 +189,13 @@ export default function Builder() {
           user.uid
         ),
         {
-          profile,
+          profile: {
+            ...profile,
+            username:
+              profile.username
+                .trim()
+                .toLowerCase(),
+          },
           links,
           theme,
         }
@@ -141,6 +208,7 @@ export default function Builder() {
     profile,
     links,
     theme,
+    usernameStatus,
   ]);
 
   async function handleImageUpload(
@@ -151,142 +219,25 @@ export default function Builder() {
 
     if (!file) return;
 
-    try {
-      if (!user) {
-        const previewUrl =
-          URL.createObjectURL(
-            file
-          );
-
-        setProfile(
-          (prev) => ({
-            ...prev,
-            avatar:
-              previewUrl,
-          })
-        );
-
-        return;
-      }
-
-      const storageRef = ref(
-        storage,
-        `avatars/${user.uid}`
-      );
-
-      await uploadBytes(
-        storageRef,
-        file
-      );
-
-      const downloadURL =
-        await getDownloadURL(
-          storageRef
-        );
-
-      setProfile(
-        (prev) => ({
-          ...prev,
-          avatar:
-            downloadURL,
-        })
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  async function exportImage() {
-    if (!previewRef.current)
-      return;
-
-    const dataUrl =
-      await htmlToImage.toPng(
-        previewRef.current
-      );
-
-    const link =
-      document.createElement("a");
-
-    link.download =
-      `${profile.username}-profile.png`;
-
-    link.href = dataUrl;
-
-    link.click();
-  }
-
-  function exportJson() {
-    const data = {
-      profile,
-      links,
-      theme,
-    };
-
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          data,
-          null,
-          2
-        ),
-      ],
-      {
-        type:
-          "application/json",
-      }
+    const storageRef = ref(
+      storage,
+      `avatars/${user.uid}`
     );
 
-    const url =
-      URL.createObjectURL(
-        blob
+    await uploadBytes(
+      storageRef,
+      file
+    );
+
+    const downloadURL =
+      await getDownloadURL(
+        storageRef
       );
 
-    const link =
-      document.createElement("a");
-
-    link.href = url;
-
-    link.download =
-      `${profile.username}.json`;
-
-    link.click();
-  }
-
-  function importJson(e) {
-    const file =
-      e.target.files?.[0];
-
-    if (!file) return;
-
-    const reader =
-      new FileReader();
-
-    reader.onload = (
-      event
-    ) => {
-      const data =
-        JSON.parse(
-          event.target.result
-        );
-
-      setProfile(
-        data.profile ||
-          defaultProfile
-      );
-
-      setLinks(
-        data.links ||
-          defaultLinks
-      );
-
-      setTheme(
-        data.theme ||
-          defaultTheme
-      );
-    };
-
-    reader.readAsText(file);
+    setProfile((prev) => ({
+      ...prev,
+      avatar: downloadURL,
+    }));
   }
 
   function handleChange(e) {
@@ -366,22 +317,18 @@ export default function Builder() {
             theme.background,
         }}
       >
-        <div className="aurora aurora-1"></div>
-        <div className="aurora aurora-2"></div>
-
         <div className="container">
           <section className="editor-panel glass">
             <UserBar />
-
-            <h2>
-              Link-in-Bio Builder
-            </h2>
 
             <ProfileForm
               profile={profile}
               onChange={handleChange}
               onImageUpload={
                 handleImageUpload
+              }
+              usernameStatus={
+                usernameStatus
               }
             />
 
@@ -405,43 +352,9 @@ export default function Builder() {
 
             <ShareButton
               username={
-                profile.username ||
-                "your-profile"
+                profile.username
               }
             />
-
-            <button
-              className="add-btn"
-              onClick={() =>
-                setShowQR(true)
-              }
-            >
-              Show QR Code
-            </button>
-
-            <button
-              className="add-btn"
-              onClick={exportImage}
-            >
-              Export as Image
-            </button>
-
-            <button
-              className="add-btn"
-              onClick={exportJson}
-            >
-              Export JSON
-            </button>
-
-            <label className="add-btn">
-              Import JSON
-              <input
-                hidden
-                type="file"
-                accept=".json"
-                onChange={importJson}
-              />
-            </label>
           </section>
 
           <section className="preview-panel">
@@ -457,8 +370,7 @@ export default function Builder() {
 
       <QRModal
         username={
-          profile.username ||
-          "your-profile"
+          profile.username
         }
         isOpen={showQR}
         onClose={() =>
