@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import * as htmlToImage from "html-to-image";
 
 import {
   doc,
   getDoc,
   setDoc,
-  collection,
-  query,
-  where,
-  getDocs,
 } from "firebase/firestore";
 
 import {
@@ -16,11 +13,7 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 
-import {
-  db,
-  storage,
-} from "../lib/firebase";
-
+import { db, storage } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 
 import UserBar from "../components/UserBar";
@@ -29,6 +22,7 @@ import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
 import ShareButton from "../components/ShareButton";
 import ThemeCustomizer from "../components/ThemeCustomizer";
+import QRModal from "../components/QRModal";
 
 const defaultProfile = {
   username: "",
@@ -53,6 +47,10 @@ const defaultTheme = {
 
 export default function Builder() {
   const { user } = useAuth();
+  const previewRef = useRef(null);
+
+  const [showQR, setShowQR] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [profile, setProfile] =
     useState(defaultProfile);
@@ -63,135 +61,91 @@ export default function Builder() {
   const [theme, setTheme] =
     useState(defaultTheme);
 
-  const [usernameStatus, setUsernameStatus] =
-    useState("");
-
   useEffect(() => {
     async function loadUserData() {
       if (!user) return;
 
       const snap = await getDoc(
-        doc(
-          db,
-          "users",
-          user.uid
-        )
+        doc(db, "users", user.uid)
       );
 
       if (!snap.exists()) return;
 
       const data = snap.data();
 
-      if (data.profile)
-        setProfile(data.profile);
+      setProfile(
+        data.profile || defaultProfile
+      );
 
-      if (data.links)
-        setLinks(data.links);
+      setLinks(
+        data.links || defaultLinks
+      );
 
-      if (data.theme)
-        setTheme(data.theme);
+      setTheme(
+        data.theme || defaultTheme
+      );
     }
 
     loadUserData();
   }, [user]);
 
-  useEffect(() => {
-    async function checkUsername() {
-      if (
-        !profile.username?.trim()
-      ) {
-        setUsernameStatus("");
-        return;
-      }
+ async function saveChanges() {
+  if (!user) return;
 
-      const username =
-        profile.username
-          .trim()
-          .toLowerCase();
+  setIsSaving(true);
 
-      const usersRef =
-        collection(
-          db,
-          "users"
-        );
+  try {
+    await setDoc(
+      doc(db, "users", user.uid),
+      {
+        profile,
+        links,
+        theme,
+      },
+      { merge: true }
+    );
 
-      const q = query(
-        usersRef,
-        where(
-          "profile.username",
-          "==",
-          username
-        )
-      );
+    console.log(
+      "Firestore save success"
+    );
+  } catch (error) {
+    console.error(
+      "Firestore save error:",
+      error
+    );
+  } finally {
+    setIsSaving(false);
+  }
+}
 
-      const snapshot =
-        await getDocs(q);
+  function handleChange(e) {
+    const { name, value } =
+      e.target;
 
-      if (snapshot.empty) {
-        setUsernameStatus(
-          "available"
-        );
-        return;
-      }
+    setProfile((prev) => ({
+      ...prev,
+      [name]:
+        name === "username"
+          ? value
+              .toLowerCase()
+              .replace(
+                /[^a-z0-9._]/g,
+                ""
+              )
+          : value,
+    }));
+  }
 
-      const existsForSameUser =
-        snapshot.docs.some(
-          (doc) =>
-            doc.id === user.uid
-        );
+async function handleImageUpload(e) {
+  const file =
+    e.target.files?.[0];
 
-      setUsernameStatus(
-        existsForSameUser
-          ? "available"
-          : "taken"
-      );
-    }
+  if (!file || !user) return;
 
-    if (user)
-      checkUsername();
-  }, [
-    profile.username,
-    user,
-  ]);
-
-  useEffect(() => {
-    async function saveData() {
-      if (!user) return;
-
-      await setDoc(
-        doc(
-          db,
-          "users",
-          user.uid
-        ),
-        {
-          profile,
-          links,
-          theme,
-        }
-      );
-    }
-
-    saveData();
-  }, [
-    profile,
-    links,
-    theme,
-    user,
-  ]);
-
-  async function handleImageUpload(
-    e
-  ) {
-    const file =
-      e.target.files?.[0];
-
-    if (!file || !user)
-      return;
-
+  try {
     const storageRef = ref(
       storage,
-      `avatars/${user.uid}`
+      `avatars/${user.uid}/${file.name}`
     );
 
     await uploadBytes(
@@ -204,70 +158,212 @@ export default function Builder() {
         storageRef
       );
 
+    console.log(
+      "Avatar uploaded:",
+      url
+    );
+
     setProfile((prev) => ({
       ...prev,
       avatar: url,
     }));
+  } catch (error) {
+    console.error(
+      "Avatar upload error:",
+      error
+    );
+  }
+}
+
+  function addLink() {
+    setLinks((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        title: "",
+        url: "",
+      },
+    ]);
   }
 
-  function handleChange(e) {
-    const { name, value } =
-      e.target;
+  function updateLink(
+    id,
+    field,
+    value
+  ) {
+    setLinks((prev) =>
+      prev.map((link) =>
+        link.id === id
+          ? {
+              ...link,
+              [field]: value,
+            }
+          : link
+      )
+    );
+  }
 
-    setProfile((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  function removeLink(id) {
+    setLinks((prev) =>
+      prev.filter(
+        (link) =>
+          link.id !== id
+      )
+    );
+  }
+
+  async function exportPNG() {
+    if (!previewRef.current) return;
+
+    const dataUrl =
+      await htmlToImage.toPng(
+        previewRef.current
+      );
+
+    const a =
+      document.createElement("a");
+
+    a.href = dataUrl;
+    a.download = "profile.png";
+    a.click();
+  }
+
+  function exportJSON() {
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          {
+            profile,
+            links,
+            theme,
+          },
+          null,
+          2
+        ),
+      ],
+      {
+        type: "application/json",
+      }
+    );
+
+    const a =
+      document.createElement("a");
+
+    a.href =
+      URL.createObjectURL(blob);
+
+    a.download =
+      "profile-data.json";
+
+    a.click();
   }
 
   return (
-    <main
-      className="app-shell"
-      style={{
-        backgroundColor:
-          theme.background,
-      }}
-    >
-      <div className="container">
-        <section className="editor-panel glass">
-          <UserBar />
+    <>
+      <main
+        className="app-shell"
+        style={{
+          backgroundColor:
+            theme.background,
+        }}
+      >
+        <div className="container">
+          <section className="editor-panel glass">
+            <UserBar />
 
-          <ProfileForm
-            profile={profile}
-            onChange={handleChange}
-            onImageUpload={
-              handleImageUpload
-            }
-            usernameStatus={
-              usernameStatus
-            }
-          />
+            <ProfileForm
+              profile={profile}
+              onChange={handleChange}
+              onImageUpload={
+                handleImageUpload
+              }
+            />
 
-          <LinksEditor
-            links={links}
-            setLinks={setLinks}
-          />
+            <LinksEditor
+              links={links}
+              onAdd={addLink}
+              onUpdate={updateLink}
+              onDelete={removeLink}
+              onReorder={setLinks}
+            />
 
-          <ThemeCustomizer
-            theme={theme}
-            setTheme={setTheme}
-          />
+            <ThemeCustomizer
+              theme={theme}
+              setTheme={setTheme}
+            />
 
-          <ShareButton
-            username={
-              profile.username
-            }
-          />
-        </section>
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+                marginTop: "20px",
+              }}
+            >
+              <button
+                className="add-btn"
+                onClick={
+                  saveChanges
+                }
+              >
+                {isSaving
+                  ? "Saving..."
+                  : "Save Changes"}
+              </button>
 
-        <section className="preview-panel">
-          <ProfilePreview
-            profile={profile}
-            links={links}
-            theme={theme}
-          />
-        </section>
-      </div>
-    </main>
+              <button
+                className="add-btn"
+                onClick={
+                  exportPNG
+                }
+              >
+                Export PNG
+              </button>
+
+              <button
+                className="add-btn"
+                onClick={() =>
+                  setShowQR(true)
+                }
+              >
+                QR Code
+              </button>
+
+              <button
+                className="add-btn"
+                onClick={
+                  exportJSON
+                }
+              >
+                Export JSON
+              </button>
+
+              <ShareButton
+                username={
+                  profile.username
+                }
+              />
+            </div>
+          </section>
+
+          <section className="preview-panel">
+            <ProfilePreview
+              ref={previewRef}
+              profile={profile}
+              links={links}
+              theme={theme}
+            />
+          </section>
+        </div>
+      </main>
+
+      <QRModal
+        username={profile.username}
+        isOpen={showQR}
+        onClose={() =>
+          setShowQR(false)
+        }
+      />
+    </>
   );
 }

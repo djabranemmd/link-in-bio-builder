@@ -1,6 +1,9 @@
 import { forwardRef } from "react";
 import getLinkIcon from "../utils/getLinkIcon";
 
+const fallbackAvatar =
+  "https://via.placeholder.com/150";
+
 const ProfilePreview = forwardRef(
   ({ profile, links = [], theme }, ref) => {
     return (
@@ -9,19 +12,25 @@ const ProfilePreview = forwardRef(
         className="profile-card glass"
       >
         <img
+          key={profile.avatar}
           src={
-            profile?.avatar ||
-            "https://via.placeholder.com/150"
+            profile.avatar ||
+            fallbackAvatar
           }
-          alt={profile?.name || "Profile"}
+          alt="Profile"
+          onError={(e) => {
+            e.currentTarget.src =
+              fallbackAvatar;
+          }}
         />
 
         <h1>
-          {profile?.name || "Your Name"}
+          {profile.name ||
+            "Your Name"}
         </h1>
 
         <p>
-          {profile?.bio ||
+          {profile.bio ||
             "Your bio will appear here"}
         </p>
 
@@ -35,15 +44,14 @@ const ProfilePreview = forwardRef(
               rel="noreferrer"
               style={{
                 backgroundColor:
-                  theme?.buttonColor ||
-                  "#6d5dfc",
-
-                borderRadius: `${
-                  theme?.radius || 18
-                }px`,
+                  theme.buttonColor,
+                borderRadius:
+                  `${theme.radius}px`,
               }}
             >
-              {getLinkIcon(link.url)}{" "}
+              {getLinkIcon(
+                link.url
+              )}{" "}
               {link.title ||
                 "Untitled Link"}
             </a>
