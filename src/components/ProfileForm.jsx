@@ -2,55 +2,29 @@ export default function ProfileForm({
   profile,
   onChange,
   onImageUpload,
-  usernameStatus,
 }) {
   return (
-    <div>
+    <div className="profile-form">
       <input
         type="text"
         name="username"
         placeholder="Username"
-        value={profile.username}
+        value={profile.username || ""}
         onChange={onChange}
       />
-
-      {usernameStatus ===
-        "available" && (
-        <p
-          style={{
-            color: "#22c55e",
-            fontSize: "14px",
-          }}
-        >
-          ✓ Available
-        </p>
-      )}
-
-      {usernameStatus ===
-        "taken" && (
-        <p
-          style={{
-            color: "#ef4444",
-            fontSize: "14px",
-          }}
-        >
-          ✕ Username already
-          taken
-        </p>
-      )}
 
       <input
         type="text"
         name="name"
         placeholder="Name"
-        value={profile.name}
+        value={profile.name || ""}
         onChange={onChange}
       />
 
       <textarea
         name="bio"
         placeholder="Bio"
-        value={profile.bio}
+        value={profile.bio || ""}
         onChange={onChange}
       />
 
