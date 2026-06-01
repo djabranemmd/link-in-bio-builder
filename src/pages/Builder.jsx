@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-} from "react";
-
-import * as htmlToImage from "html-to-image";
+import { useEffect, useState } from "react";
 
 import {
   doc,
@@ -35,8 +29,6 @@ import ProfilePreview from "../components/ProfilePreview";
 import LinksEditor from "../components/LinksEditor";
 import ShareButton from "../components/ShareButton";
 import ThemeCustomizer from "../components/ThemeCustomizer";
-import QRModal from "../components/QRModal";
-import useLocalStorage from "../hooks/useLocalStorage";
 
 const defaultProfile = {
   username: "",
@@ -62,31 +54,17 @@ const defaultTheme = {
 export default function Builder() {
   const { user } = useAuth();
 
-  const previewRef = useRef(null);
+  const [profile, setProfile] =
+    useState(defaultProfile);
+
+  const [links, setLinks] =
+    useState(defaultLinks);
+
+  const [theme, setTheme] =
+    useState(defaultTheme);
 
   const [usernameStatus, setUsernameStatus] =
     useState("");
-
-  const [profile, setProfile] =
-    useLocalStorage(
-      "profile",
-      defaultProfile
-    );
-
-  const [links, setLinks] =
-    useLocalStorage(
-      "links",
-      defaultLinks
-    );
-
-  const [theme, setTheme] =
-    useLocalStorage(
-      "theme",
-      defaultTheme
-    );
-
-  const [showQR, setShowQR] =
-    useState(false);
 
   useEffect(() => {
     async function loadUserData() {
@@ -100,18 +78,18 @@ export default function Builder() {
         )
       );
 
-      if (snap.exists()) {
-        const data = snap.data();
+      if (!snap.exists()) return;
 
-        if (data.profile)
-          setProfile(data.profile);
+      const data = snap.data();
 
-        if (data.links)
-          setLinks(data.links);
+      if (data.profile)
+        setProfile(data.profile);
 
-        if (data.theme)
-          setTheme(data.theme);
-      }
+      if (data.links)
+        setLinks(data.links);
+
+      if (data.theme)
+        setTheme(data.theme);
     }
 
     loadUserData();
@@ -131,11 +109,14 @@ export default function Builder() {
           .trim()
           .toLowerCase();
 
-      const q = query(
+      const usersRef =
         collection(
           db,
           "users"
-        ),
+        );
+
+      const q = query(
+        usersRef,
         where(
           "profile.username",
           "==",
@@ -143,30 +124,31 @@ export default function Builder() {
         )
       );
 
-      const result =
+      const snapshot =
         await getDocs(q);
 
-      if (result.empty) {
+      if (snapshot.empty) {
         setUsernameStatus(
           "available"
         );
         return;
       }
 
-      const sameUser =
-        result.docs.some(
+      const existsForSameUser =
+        snapshot.docs.some(
           (doc) =>
-            doc.id === user?.uid
+            doc.id === user.uid
         );
 
       setUsernameStatus(
-        sameUser
+        existsForSameUser
           ? "available"
           : "taken"
       );
     }
 
-    checkUsername();
+    if (user)
+      checkUsername();
   }, [
     profile.username,
     user,
@@ -176,12 +158,6 @@ export default function Builder() {
     async function saveData() {
       if (!user) return;
 
-      if (
-        usernameStatus ===
-        "taken"
-      )
-        return;
-
       await setDoc(
         doc(
           db,
@@ -189,13 +165,7 @@ export default function Builder() {
           user.uid
         ),
         {
-          profile: {
-            ...profile,
-            username:
-              profile.username
-                .trim()
-                .toLowerCase(),
-          },
+          profile,
           links,
           theme,
         }
@@ -204,11 +174,10 @@ export default function Builder() {
 
     saveData();
   }, [
-    user,
     profile,
     links,
     theme,
-    usernameStatus,
+    user,
   ]);
 
   async function handleImageUpload(
@@ -217,7 +186,8 @@ export default function Builder() {
     const file =
       e.target.files?.[0];
 
-    if (!file) return;
+    if (!file || !user)
+      return;
 
     const storageRef = ref(
       storage,
@@ -229,14 +199,14 @@ export default function Builder() {
       file
     );
 
-    const downloadURL =
+    const url =
       await getDownloadURL(
         storageRef
       );
 
     setProfile((prev) => ({
       ...prev,
-      avatar: downloadURL,
+      avatar: url,
     }));
   }
 
@@ -250,133 +220,54 @@ export default function Builder() {
     }));
   }
 
-  function handleThemeChange(
-    e
-  ) {
-    const { name, value } =
-      e.target;
-
-    setTheme((prev) => ({
-      ...prev,
-      [name]:
-        name === "radius"
-          ? Number(value)
-          : value,
-    }));
-  }
-
-  function handlePresetSelect(
-    preset
-  ) {
-    setTheme(preset);
-  }
-
-  function addLink() {
-    setLinks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        title: "",
-        url: "",
-      },
-    ]);
-  }
-
-  function updateLink(
-    id,
-    field,
-    value
-  ) {
-    setLinks((prev) =>
-      prev.map((link) =>
-        link.id === id
-          ? {
-              ...link,
-              [field]: value,
-            }
-          : link
-      )
-    );
-  }
-
-  function removeLink(id) {
-    setLinks((prev) =>
-      prev.filter(
-        (link) =>
-          link.id !== id
-      )
-    );
-  }
-
   return (
-    <>
-      <main
-        className="app-shell"
-        style={{
-          backgroundColor:
-            theme.background,
-        }}
-      >
-        <div className="container">
-          <section className="editor-panel glass">
-            <UserBar />
+    <main
+      className="app-shell"
+      style={{
+        backgroundColor:
+          theme.background,
+      }}
+    >
+      <div className="container">
+        <section className="editor-panel glass">
+          <UserBar />
 
-            <ProfileForm
-              profile={profile}
-              onChange={handleChange}
-              onImageUpload={
-                handleImageUpload
-              }
-              usernameStatus={
-                usernameStatus
-              }
-            />
+          <ProfileForm
+            profile={profile}
+            onChange={handleChange}
+            onImageUpload={
+              handleImageUpload
+            }
+            usernameStatus={
+              usernameStatus
+            }
+          />
 
-            <LinksEditor
-              links={links}
-              onAdd={addLink}
-              onUpdate={updateLink}
-              onDelete={removeLink}
-              onReorder={setLinks}
-            />
+          <LinksEditor
+            links={links}
+            setLinks={setLinks}
+          />
 
-            <ThemeCustomizer
-              theme={theme}
-              onChange={
-                handleThemeChange
-              }
-              onPresetSelect={
-                handlePresetSelect
-              }
-            />
+          <ThemeCustomizer
+            theme={theme}
+            setTheme={setTheme}
+          />
 
-            <ShareButton
-              username={
-                profile.username
-              }
-            />
-          </section>
+          <ShareButton
+            username={
+              profile.username
+            }
+          />
+        </section>
 
-          <section className="preview-panel">
-            <ProfilePreview
-              ref={previewRef}
-              profile={profile}
-              links={links}
-              theme={theme}
-            />
-          </section>
-        </div>
-      </main>
-
-      <QRModal
-        username={
-          profile.username
-        }
-        isOpen={showQR}
-        onClose={() =>
-          setShowQR(false)
-        }
-      />
-    </>
+        <section className="preview-panel">
+          <ProfilePreview
+            profile={profile}
+            links={links}
+            theme={theme}
+          />
+        </section>
+      </div>
+    </main>
   );
 }
