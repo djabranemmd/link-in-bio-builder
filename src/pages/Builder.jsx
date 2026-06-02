@@ -49,8 +49,14 @@ export default function Builder() {
   const { user } = useAuth();
   const previewRef = useRef(null);
 
-  const [showQR, setShowQR] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] =
+    useState(true);
+
+  const [showQR, setShowQR] =
+    useState(false);
+
+  const [isSaving, setIsSaving] =
+    useState(false);
 
   const [profile, setProfile] =
     useState(defaultProfile);
@@ -63,60 +69,72 @@ export default function Builder() {
 
   useEffect(() => {
     async function loadUserData() {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      const snap = await getDoc(
-        doc(db, "users", user.uid)
-      );
+      try {
+        const snap = await getDoc(
+          doc(db, "users", user.uid)
+        );
 
-      if (!snap.exists()) return;
+        if (snap.exists()) {
+          const data = snap.data();
 
-      const data = snap.data();
+          setProfile(
+            data.profile || defaultProfile
+          );
 
-      setProfile(
-        data.profile || defaultProfile
-      );
+          setLinks(
+            data.links || defaultLinks
+          );
 
-      setLinks(
-        data.links || defaultLinks
-      );
-
-      setTheme(
-        data.theme || defaultTheme
-      );
+          setTheme(
+            data.theme || defaultTheme
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Load user data error:",
+          error
+        );
+      } finally {
+        setLoading(false);
+      }
     }
 
     loadUserData();
   }, [user]);
 
- async function saveChanges() {
-  if (!user) return;
+  async function saveChanges() {
+    if (!user) return;
 
-  setIsSaving(true);
+    setIsSaving(true);
 
-  try {
-    await setDoc(
-      doc(db, "users", user.uid),
-      {
-        profile,
-        links,
-        theme,
-      },
-      { merge: true }
-    );
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          profile,
+          links,
+          theme,
+        },
+        { merge: true }
+      );
 
-    console.log(
-      "Firestore save success"
-    );
-  } catch (error) {
-    console.error(
-      "Firestore save error:",
-      error
-    );
-  } finally {
-    setIsSaving(false);
+      console.log(
+        "Firestore save success"
+      );
+    } catch (error) {
+      console.error(
+        "Firestore save error:",
+        error
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
-}
 
   function handleChange(e) {
     const { name, value } =
@@ -136,44 +154,44 @@ export default function Builder() {
     }));
   }
 
-async function handleImageUpload(e) {
-  const file =
-    e.target.files?.[0];
+  async function handleImageUpload(e) {
+    const file =
+      e.target.files?.[0];
 
-  if (!file || !user) return;
+    if (!file || !user) return;
 
-  try {
-    const storageRef = ref(
-      storage,
-      `avatars/${user.uid}/${file.name}`
-    );
-
-    await uploadBytes(
-      storageRef,
-      file
-    );
-
-    const url =
-      await getDownloadURL(
-        storageRef
+    try {
+      const storageRef = ref(
+        storage,
+        `avatars/${user.uid}/${file.name}`
       );
 
-    console.log(
-      "Avatar uploaded:",
-      url
-    );
+      await uploadBytes(
+        storageRef,
+        file
+      );
 
-    setProfile((prev) => ({
-      ...prev,
-      avatar: url,
-    }));
-  } catch (error) {
-    console.error(
-      "Avatar upload error:",
-      error
-    );
+      const url =
+        await getDownloadURL(
+          storageRef
+        );
+
+      console.log(
+        "Avatar uploaded:",
+        url
+      );
+
+      setProfile((prev) => ({
+        ...prev,
+        avatar: url,
+      }));
+    } catch (error) {
+      console.error(
+        "Avatar upload error:",
+        error
+      );
+    }
   }
-}
 
   function addLink() {
     setLinks((prev) => [
@@ -256,6 +274,25 @@ async function handleImageUpload(e) {
       "profile-data.json";
 
     a.click();
+  }
+
+  if (loading) {
+    return (
+      <main className="app-shell">
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "white",
+            fontSize: "18px",
+          }}
+        >
+          Loading profile...
+        </div>
+      </main>
+    );
   }
 
   return (
