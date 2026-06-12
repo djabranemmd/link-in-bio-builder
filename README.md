@@ -75,8 +75,6 @@ src/
 ```
 # Screenshots
 
-## Add screenshots here later:
-
 ![App Screenshot](./src/assets/Screenshot%202026-05-28%20at%2012.36.56 AM.png)
 
 # Future Improvements
